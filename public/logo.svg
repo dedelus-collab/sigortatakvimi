@@ -1,0 +1,30 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dış kalkan -->
+  <path d="M32 4L54 14V32C54 48 42 58 32 62C22 58 10 48 10 32V14L32 4Z" fill="url(#shieldGradient)"></path>
+
+  <!-- Takvim gövdesi -->
+  <rect x="20" y="18" width="24" height="24" rx="6" fill="white" opacity="0.95"></rect>
+
+  <!-- Takvim üst şeridi -->
+  <rect x="20" y="18" width="24" height="6" rx="6" fill="#2563EB"></rect>
+
+  <!-- Saat çerçevesi -->
+  <circle cx="32" cy="34" r="7" fill="none" stroke="#2563EB" stroke-width="2"></circle>
+
+  <!-- Saat akrebi -->
+  <line x1="32" y1="34" x2="32" y2="30" stroke="#2563EB" stroke-width="2" stroke-linecap="round"></line>
+
+  <!-- Saat yelkovanı -->
+  <line x1="32" y1="34" x2="36" y2="36" stroke="#2563EB" stroke-width="2" stroke-linecap="round"></line>
+
+  <!-- Takvim halkaları -->
+  <rect x="24" y="14" width="4" height="6" rx="2" fill="#2563EB"></rect>
+  <rect x="36" y="14" width="4" height="6" rx="2" fill="#2563EB"></rect>
+
+  <defs>
+    <linearGradient id="shieldGradient" x1="10" y1="4" x2="54" y2="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1E40AF"></stop>
+      <stop offset="1" stop-color="#22D3EE"></stop>
+    </linearGradient>
+  </defs>
+</svg>
