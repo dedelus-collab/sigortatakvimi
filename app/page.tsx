@@ -1,17 +1,16 @@
-// app/page.tsx
+import { CSSProperties } from "react";
 import DemoForm from "./DemoForm";
 
 export const metadata = {
   title: "SigortaTakvimi | Sigorta Acenteleri İçin Poliçe Takip Sistemi",
   description:
-    "Sigorta acenteleri için poliçe bitişlerini otomatik takip eden, müşteri hatırlatma ve takip sistemi.",
+    "Sigorta acenteleri için poliçe bitişlerini otomatik takip eden SaaS yazılımı.",
 };
 
 export default function Page() {
   return (
     <main style={s.page}>
       <section style={s.container}>
-        {/* SOL – SEO İÇERİK */}
         <div>
           <span style={s.badge}>Sigorta Acenteleri İçin SaaS</span>
 
@@ -27,20 +26,19 @@ export default function Page() {
 
           <ul style={s.list}>
             <li>Otomatik poliçe hatırlatma</li>
-            <li>Müşteri arama ve takip sistemi</li>
+            <li>Müşteri takip sistemi</li>
             <li>Acente performans raporları</li>
             <li>Bulut tabanlı güvenli altyapı</li>
           </ul>
         </div>
 
-        {/* SAĞ – CLIENT FORM */}
         <DemoForm />
       </section>
     </main>
   );
 }
 
-const s = {
+const s: Record<string, CSSProperties> = {
   page: {
     minHeight: "100vh",
     background: "linear-gradient(180deg,#f8fafc,#eef2ff)",
@@ -63,8 +61,8 @@ const s = {
     borderRadius: 999,
     fontSize: 13,
     fontWeight: 600,
-    marginBottom: 16,
     display: "inline-block",
+    marginBottom: 16,
   },
   title: {
     fontSize: 42,
@@ -78,9 +76,7 @@ const s = {
     marginBottom: 24,
   },
   list: {
-    listStyle: "disc",
     paddingLeft: 18,
-    fontSize: 15,
     lineHeight: "2em",
     color: "#334155",
   },

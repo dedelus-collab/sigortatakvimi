@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, CSSProperties } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function DemoForm() {
@@ -40,7 +40,7 @@ export default function DemoForm() {
 
   return (
     <div style={s.card}>
-      <h3 style={s.formTitle}>Ücretsiz Demo Talebi</h3>
+      <h3 style={s.title}>Ücretsiz Demo Talebi</h3>
 
       <form onSubmit={handleSubmit} style={s.form}>
         <input name="full_name" placeholder="Ad Soyad" value={form.full_name} onChange={handleChange} required style={s.input} />
@@ -61,7 +61,7 @@ export default function DemoForm() {
   );
 }
 
-const s = {
+const s: Record<string, CSSProperties> = {
   card: {
     background: "#fff",
     padding: 32,
@@ -70,7 +70,7 @@ const s = {
     maxWidth: 420,
     width: "100%",
   },
-  formTitle: {
+  title: {
     fontSize: 22,
     fontWeight: 800,
   },
