@@ -112,6 +112,6 @@ const s: Record<string, CSSProperties> = {
     background: "#dcfce7",
     color: "#166534",
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 13,
   },
 };
