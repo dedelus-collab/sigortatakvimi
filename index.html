@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kripto TD Sequential Scanner</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
+
+:root {
+  --bg:#050810;--surface:#0a0f1e;--surface2:#0f1628;--border:#1a2444;
+  --green:#00ff88;--red:#ff3366;--yellow:#ffcc00;--blue:#00aaff;--purple:#bb88ff;
+  --text:#e8eaf6;--muted:#5a6a8a;
+  --g-green:0 0 18px rgba(0,255,136,.3);--g-red:0 0 18px rgba(255,51,102,.3);
+  --g-yellow:0 0 18px rgba(255,204,0,.3);--g-purple:0 0 18px rgba(187,136,255,.3);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 80% 50% at 20% 20%,rgba(0,170,255,.04) 0%,transparent 60%),
+             radial-gradient(ellipse 60% 40% at 80% 80%,rgba(0,255,136,.03) 0%,transparent 60%);
+  pointer-events:none;z-index:0}
+.grid-bg{position:fixed;inset:0;
+  background-image:linear-gradient(rgba(26,36,68,.3) 1px,transparent 1px),linear-gradient(90deg,rgba(26,36,68,.3) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1500px;margin:0 auto;padding:24px 20px}
+
+/* ── HEADER ─────────────────────────────────────────── */
+.hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--border)}
+.hdr h1{font-family:'Syne',sans-serif;font-size:23px;font-weight:800;letter-spacing:-1px;
+  background:linear-gradient(135deg,var(--blue),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hdr .sub{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:2px;text-transform:uppercase}
+.btn-row{display:flex;gap:10px;align-items:center}
+.lupd{font-size:10px;color:var(--muted)}
+
+.btn{padding:10px 22px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;cursor:pointer;transition:all .2s;border:none;
+  clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-scan{background:linear-gradient(135deg,#00aaff22,#00ff8822);border:1px solid var(--green);color:var(--green)}
+.btn-scan:hover:not(:disabled){background:linear-gradient(135deg,#00aaff44,#00ff8844);box-shadow:var(--g-green);transform:translateY(-1px)}
+.btn-bt{background:linear-gradient(135deg,#bb88ff22,#00aaff22);border:1px solid var(--purple);color:var(--purple)}
+.btn-bt:hover:not(:disabled){background:linear-gradient(135deg,#bb88ff44,#00aaff44);box-shadow:var(--g-purple);transform:translateY(-1px)}
+.spinning{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ── PROGRESS ────────────────────────────────────────── */
+.prog-wrap{margin-bottom:16px;display:none}
+.prog-wrap.on{display:block}
+.prog-bar{background:var(--surface);border:1px solid var(--border);height:3px;overflow:hidden;margin-bottom:5px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--green));transition:width .4s;box-shadow:0 0 8px var(--green)}
+.prog-txt{font-size:10px;color:var(--muted);text-align:center;letter-spacing:1px}
+
+/* ── FILTER ──────────────────────────────────────────── */
+.frow{display:flex;gap:8px;margin-bottom:18px;align-items:center;flex-wrap:wrap}
+.flbl{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-right:4px}
+.fbtn{padding:5px 12px;background:var(--surface);border:1px solid var(--border);color:var(--muted);
+  font-family:'Space Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:1px;transition:all .15s}
+.fbtn.on,.fbtn:hover{background:rgba(0,170,255,.1);border-color:var(--blue);color:var(--blue)}
+
+/* ── STATS ───────────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px}
+.sc{background:var(--surface);border:1px solid var(--border);padding:12px 15px;position:relative;overflow:hidden}
+.sc::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%}
+.sc.g::before{background:var(--green);box-shadow:var(--g-green)}
+.sc.y::before{background:var(--yellow);box-shadow:var(--g-yellow)}
+.sc.r::before{background:var(--red);box-shadow:var(--g-red)}
+.sc.b::before{background:var(--blue)}
+.sc.p::before{background:var(--purple);box-shadow:var(--g-purple)}
+.sc-lbl{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+.sc-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800}
+.sc.g .sc-val{color:var(--green)}.sc.y .sc-val{color:var(--yellow)}.sc.r .sc-val{color:var(--red)}.sc.b .sc-val{color:var(--blue)}.sc.p .sc-val{color:var(--purple)}
+
+/* ── GRID ────────────────────────────────────────────── */
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.sec{background:var(--surface);border:1px solid var(--border);overflow:hidden}
+.sec.fw{grid-column:1/-1}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;border-bottom:1px solid var(--border);position:relative}
+.sec-hdr::after{content:'';position:absolute;bottom:0;left:0;height:2px;width:100%}
+.sec.bs .sec-hdr::after{background:linear-gradient(90deg,var(--green),transparent)}
+.sec.cd .sec-hdr::after{background:linear-gradient(90deg,var(--yellow),transparent)}
+.sec.ss .sec-hdr::after{background:linear-gradient(90deg,var(--red),transparent)}
+.sec.ap .sec-hdr::after{background:linear-gradient(90deg,var(--blue),transparent)}
+.sec.bk .sec-hdr::after{background:linear-gradient(90deg,var(--purple),transparent)}
+.sec-ttl{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.dot{width:7px;height:7px;border-radius:50%;animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.dot.g{background:var(--green);box-shadow:var(--g-green)}.dot.y{background:var(--yellow)}.dot.r{background:var(--red);box-shadow:var(--g-red)}.dot.b{background:var(--blue)}.dot.p{background:var(--purple);box-shadow:var(--g-purple)}
+.sec-cnt{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700}
+.sec.bs .sec-cnt{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.2)}
+.sec.cd .sec-cnt{background:rgba(255,204,0,.1);color:var(--yellow);border:1px solid rgba(255,204,0,.2)}
+.sec.ss .sec-cnt{background:rgba(255,51,102,.1);color:var(--red);border:1px solid rgba(255,51,102,.2)}
+.sec.ap .sec-cnt{background:rgba(0,170,255,.1);color:var(--blue);border:1px solid rgba(0,170,255,.2)}
+.sec.bk .sec-cnt{background:rgba(187,136,255,.1);color:var(--purple);border:1px solid rgba(187,136,255,.2)}
+
+/* ── TABLE ───────────────────────────────────────────── */
+.tw{overflow:auto;max-height:340px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{position:sticky;top:0;background:var(--surface2);padding:8px 12px;text-align:left;
+  font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);
+  white-space:nowrap;border-bottom:1px solid var(--border);z-index:10}
+tbody tr{border-bottom:1px solid rgba(26,36,68,.5);transition:background .15s;animation:fi .4s ease forwards;opacity:0}
+@keyframes fi{to{opacity:1}}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+tbody td{padding:9px 12px;white-space:nowrap}
+
+.sym{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#fff}
+.sym span{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);font-weight:400}
+
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.badge.g{background:rgba(0,255,136,.12);color:var(--green);border:1px solid rgba(0,255,136,.25)}
+.badge.r{background:rgba(255,51,102,.12);color:var(--red);border:1px solid rgba(255,51,102,.25)}
+.badge.y{background:rgba(255,204,0,.12);color:var(--yellow);border:1px solid rgba(255,204,0,.2)}
+.badge.b{background:rgba(0,170,255,.12);color:var(--blue);border:1px solid rgba(0,170,255,.2)}
+.badge.p{background:rgba(187,136,255,.12);color:var(--purple);border:1px solid rgba(187,136,255,.2)}
+.badge.gray{background:rgba(90,106,138,.2);color:var(--muted);border:1px solid rgba(90,106,138,.3)}
+
+.cdnum{display:inline-block;width:26px;height:26px;background:rgba(255,204,0,.1);border:1px solid rgba(255,204,0,.3);color:var(--yellow);font-weight:700;font-size:12px;text-align:center;line-height:24px;border-radius:3px}
+.snum{display:inline-block;width:26px;height:26px;font-weight:700;font-size:12px;text-align:center;line-height:24px;border-radius:3px}
+.snum.g{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);color:var(--green)}
+.snum.r{background:rgba(255,51,102,.1);border:1px solid rgba(255,51,102,.3);color:var(--red)}
+
+.chg{font-weight:700}.chg.up{color:var(--green)}.chg.dn{color:var(--red)}
+.px{font-weight:700;color:var(--text)}
+.hac{display:inline-flex;align-items:center;gap:4px;font-size:10px}
+.ci{width:3px;height:14px;border-radius:1px;display:inline-block}
+.ci.g{background:var(--green);box-shadow:0 0 5px rgba(0,255,136,.5)}
+.ci.r{background:var(--red);box-shadow:0 0 5px rgba(255,51,102,.5)}
+.vol{color:var(--muted);font-size:10px}
+
+/* ── RATE BAR ─────────────────────────────────────────── */
+.rbar-w{display:flex;align-items:center;gap:7px;min-width:130px}
+.rbar{flex:1;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.rfill{height:100%;border-radius:3px;transition:width .9s ease}
+.rfill.hi{background:linear-gradient(90deg,var(--green),#00ffcc);box-shadow:0 0 6px rgba(0,255,136,.4)}
+.rfill.mi{background:linear-gradient(90deg,var(--yellow),#ffaa00);box-shadow:0 0 5px rgba(255,204,0,.3)}
+.rfill.lo{background:linear-gradient(90deg,var(--red),#ff6688);box-shadow:0 0 5px rgba(255,51,102,.3)}
+.rpct{font-family:'Syne',sans-serif;font-size:12px;font-weight:800;min-width:40px;text-align:right}
+.rpct.hi{color:var(--green)}.rpct.mi{color:var(--yellow)}.rpct.lo{color:var(--red)}
+.pips{display:inline-flex;align-items:center;gap:2px;margin-top:3px}
+.pip{width:5px;height:5px;border-radius:50%}
+.pip.on.hi{background:var(--green);box-shadow:0 0 3px rgba(0,255,136,.6)}
+.pip.on.mi{background:var(--yellow)}.pip.on.lo{background:var(--red)}
+.pip.off{background:rgba(255,255,255,.08)}
+.ag{font-size:13px;font-weight:700}
+.ag.up{color:var(--green)}.ag.mi{color:var(--yellow)}.ag.dn{color:var(--red)}
+
+/* ── BACKTEST SUMMARY ────────────────────────────────── */
+.bt-sum{display:none;grid-template-columns:repeat(3,1fr);gap:12px;padding:13px 15px;border-bottom:1px solid var(--border)}
+.btc{background:var(--surface2);border:1px solid var(--border);padding:10px 13px;border-radius:2px}
+.btc-lbl{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+.btc-val{font-family:'Syne',sans-serif;font-size:18px;font-weight:800}
+.btc-val.p{color:var(--purple)}.btc-val.g{color:var(--green)}.btc-val.y{color:var(--yellow)}
+.btc-sub{font-size:9px;color:var(--muted);margin-top:2px}
+.notebox{display:none;background:rgba(187,136,255,.04);border-bottom:1px solid rgba(187,136,255,.12);padding:9px 15px;font-size:10px;color:var(--muted);line-height:1.7}
+.notebox strong{color:var(--purple)}
+
+.empty{padding:36px 20px;text-align:center;color:var(--muted);font-size:11px;letter-spacing:1px}
+.empty .ic{font-size:26px;margin-bottom:10px;opacity:.4}
+
+/* ── LEGEND ──────────────────────────────────────────── */
+.legend{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:12px 15px;
+  background:var(--surface2);border:1px solid var(--border);margin-top:14px;font-size:10px;color:var(--muted)}
+.li{display:flex;align-items:center;gap:6px}
+.ld{width:6px;height:6px;border-radius:50%}
+
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div>
+      <h1>TD SEQUENTIAL SCANNER</h1>
+      <div class="sub">Kripto · Heiken Ashi · 4 Saatlik · Binance USDT · Geçmiş %10 Başarı Analizi</div>
+    </div>
+    <div class="btn-row">
+      <span class="lupd" id="lupd">—</span>
+      <button class="btn btn-bt" id="btBtn" onclick="runBacktest()" disabled>📊 GERİ DÖNÜK ANALİZ</button>
+      <button class="btn btn-scan" id="scanBtn" onclick="runScan()">▶ TARA</button>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="prog-wrap" id="pw">
+    <div class="prog-bar"><div class="prog-fill" id="pf" style="width:0%"></div></div>
+    <div class="prog-txt" id="pt">İşlem yapılıyor...</div>
+  </div>
+
+  <!-- FILTER -->
+  <div class="frow">
+    <span class="flbl">Evren:</span>
+    <button class="fbtn on" onclick="setFilter('top50',this)">TOP 50</button>
+    <button class="fbtn" onclick="setFilter('top100',this)">TOP 100</button>
+    <button class="fbtn" onclick="setFilter('all',this)">GENİŞ LİSTE</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="sc g"><div class="sc-lbl">Buy Setup 9</div><div class="sc-val" id="sBuy">—</div></div>
+    <div class="sc y"><div class="sc-lbl">Buy Countdown</div><div class="sc-val" id="sCD">—</div></div>
+    <div class="sc r"><div class="sc-lbl">Sell Setup 9</div><div class="sc-val" id="sSell">—</div></div>
+    <div class="sc b"><div class="sc-lbl">Yaklaşan (7–8)</div><div class="sc-val" id="sApp">—</div></div>
+    <div class="sc p"><div class="sc-lbl">Taranan</div><div class="sc-val" id="sTotal">—</div></div>
+  </div>
+
+  <!-- SECTION GRID -->
+  <div class="sgrid">
+
+    <!-- BUY SETUP 9 -->
+    <div class="sec bs">
+      <div class="sec-hdr">
+        <div class="sec-ttl"><span class="dot g"></span>BUY SETUP 9</div>
+        <span class="sec-cnt" id="cBuy">0</span>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Sembol</th><th>Fiyat</th><th>24S%</th><th>HA Mum</th><th>Trend</th><th>Hacim</th></tr></thead>
+        <tbody id="tBuy"><tr><td colspan="6"><div class="empty"><div class="ic">📡</div>Tarama başlatın</div></td></tr></tbody>
+      </table></div>
+    </div>
+
+    <!-- BUY COUNTDOWN -->
+    <div class="sec cd">
+      <div class="sec-hdr">
+        <div class="sec-ttl"><span class="dot y"></span>BUY COUNTDOWN</div>
+        <span class="sec-cnt" id="cCD">0</span>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Sembol</th><th>Fiyat</th><th>24S%</th><th>Bar</th><th>HA Mum</th><th>Hacim</th></tr></thead>
+        <tbody id="tCD"><tr><td colspan="6"><div class="empty"><div class="ic">⏳</div>Tarama başlatın</div></td></tr></tbody>
+      </table></div>
+    </div>
+
+    <!-- SELL SETUP 9 -->
+    <div class="sec ss">
+      <div class="sec-hdr">
+        <div class="sec-ttl"><span class="dot r"></span>SELL SETUP 9</div>
+        <span class="sec-cnt" id="cSell">0</span>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Sembol</th><th>Fiyat</th><th>24S%</th><th>HA Mum</th><th>Trend</th><th>Hacim</th></tr></thead>
+        <tbody id="tSell"><tr><td colspan="6"><div class="empty"><div class="ic">📡</div>Tarama başlatın</div></td></tr></tbody>
+      </table></div>
+    </div>
+
+    <!-- YAKLAŞANLAR -->
+    <div class="sec ap">
+      <div class="sec-hdr">
+        <div class="sec-ttl"><span class="dot b"></span>YAKLAŞAN SİNYALLER (7–8)</div>
+        <span class="sec-cnt" id="cApp">0</span>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Sembol</th><th>Fiyat</th><th>24S%</th><th>Bar</th><th>Tür</th><th>HA Mum</th></tr></thead>
+        <tbody id="tApp"><tr><td colspan="6"><div class="empty"><div class="ic">🔍</div>Tarama başlatın</div></td></tr></tbody>
+      </table></div>
+    </div>
+
+    <!-- GERİ DÖNÜK ANALİZ -->
+    <div class="sec bk fw">
+      <div class="sec-hdr">
+        <div class="sec-ttl"><span class="dot p"></span>GERİ DÖNÜK BAŞARI ANALİZİ — %10 Getiri Hedefi · 20 Bar Pencere (4H ≈ 80 Saat)</div>
+        <span class="sec-cnt" id="cBT">0</span>
+      </div>
+      <div class="bt-sum" id="btSum">
+        <div class="btc"><div class="btc-lbl">Ort. Başarı Oranı</div><div class="btc-val p" id="btAvg">—</div><div class="btc-sub">Buy Setup 9 sinyalleri</div></div>
+        <div class="btc"><div class="btc-lbl">Ort. Maks. Kazanç</div><div class="btc-val g" id="btGain">—</div><div class="btc-sub">20 bar içinde max yükseliş</div></div>
+        <div class="btc"><div class="btc-lbl">Toplam Geçmiş Sinyal</div><div class="btc-val y" id="btSig">—</div><div class="btc-sub">Analiz edilen sinyal adedi</div></div>
+      </div>
+      <div class="notebox" id="nb">
+        <strong>Metodoloji:</strong> Her geçmiş Buy Setup 9 sinyali için, kapanış fiyatından sonraki <strong>20 bar (≈80 saat)</strong> içinde maksimum yükselen fiyat hesaplandı.
+        Başarı kriteri = Maks. getiri ≥ <strong>%10</strong>. Analiz için <strong>1000 mum 4H veri</strong> (≈ 5–6 ay) kullanıldı. Sonuçlar başarı oranına göre sıralanmıştır.
+      </div>
+      <div class="tw" style="max-height:480px"><table>
+        <thead><tr>
+          <th>Sembol</th><th>Fiyat</th><th>24S%</th><th>HA Mum</th>
+          <th>%10 Başarı Oranı</th><th>Başarılı/Toplam</th>
+          <th>Ort. Maks. Kazanç</th><th>Sinyal Adedi</th><th>Değerlendirme</th>
+        </tr></thead>
+        <tbody id="tBT"><tr><td colspan="9"><div class="empty"><div class="ic">📊</div>Önce tarama yapın → "Geri Dönük Analiz" butonuna basın</div></td></tr></tbody>
+      </table></div>
+    </div>
+
+  </div><!-- .sgrid -->
+
+  <div class="legend">
+    <div class="li"><div class="ld" style="background:var(--green)"></div>Buy Setup 9 — 9 ardışık HA düşüşü</div>
+    <div class="li"><div class="ld" style="background:var(--yellow)"></div>Buy Countdown — setup sonrası close≤low[i-2], max 13</div>
+    <div class="li"><div class="ld" style="background:var(--red)"></div>Sell Setup 9 — 9 ardışık HA yükselişi</div>
+    <div class="li"><div class="ld" style="background:var(--purple)"></div>Geri dönük: sinyal sonrası 20×4H içinde %10+ hedef · 1000 mum veri</div>
+    <div class="li" style="margin-left:auto">🥇≥%70 &nbsp;🥈%50–70 &nbsp;🥉%30–50 &nbsp;📉&lt;%30</div>
+  </div>
+
+</div><!-- .wrap -->
+
+<script>
+let universe = 'top50';
+let buyTargets = [];   // backtest için
+let cdTargets  = [];
+let progTimer  = null;
+
+function setFilter(f, btn) {
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  universe = f;
+}
+
+// ── PROGRESS POLLING ──────────────────────────────────────
+function startPollProgress() {
+  stopPollProgress();
+  progTimer = setInterval(async () => {
+    try {
+      const r = await fetch('/api/progress');
+      const d = await r.json();
+      if (d.running) {
+        showProg(true, d.progress, (d.phase === 'backtest' ? '📊 Analiz: ' : '🔍 Tarananıyor: ') + d.progress_text);
+      } else {
+        stopPollProgress();
+        showProg(false);
+      }
+    } catch {}
+  }, 600);
+}
+
+function stopPollProgress() {
+  if (progTimer) { clearInterval(progTimer); progTimer = null; }
+}
+
+function showProg(on, pct = 0, txt = '') {
+  const w = document.getElementById('pw');
+  const f = document.getElementById('pf');
+  const t = document.getElementById('pt');
+  if (on) { w.classList.add('on'); f.style.width = pct + '%'; t.textContent = txt; }
+  else { w.classList.remove('on'); f.style.width = '0%'; }
+}
+
+// ── TARAMA ───────────────────────────────────────────────
+async function runScan() {
+  const sb = document.getElementById('scanBtn');
+  const bb = document.getElementById('btBtn');
+  sb.disabled = true; sb.classList.add('spinning'); sb.textContent = '⏳ TARANIYOR...';
+  bb.disabled = true;
+  buyTargets = []; cdTargets = [];
+  startPollProgress();
+
+  try {
+    const resp = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ universe })
+    });
+    const data = await resp.json();
+    stopPollProgress(); showProg(false);
+
+    buyTargets = data.buy || [];
+    cdTargets  = data.cd  || [];
+
+    renderStats(data);
+    renderBuy(data.buy   || []);
+    renderCD (data.cd    || []);
+    renderSell(data.sell || []);
+    renderApp(data.approach || []);
+    document.getElementById('lupd').textContent = 'Son: ' + new Date().toLocaleTimeString('tr-TR');
+  } catch(e) {
+    stopPollProgress(); showProg(false);
+    alert('Tarama hatası: ' + e.message);
+  }
+
+  sb.disabled = false; sb.classList.remove('spinning'); sb.textContent = '↻ YENİLE';
+  if (buyTargets.length + cdTargets.length > 0) bb.disabled = false;
+}
+
+// ── GERİ DÖNÜK ANALİZ ────────────────────────────────────
+async function runBacktest() {
+  const targets = [...buyTargets, ...cdTargets];
+  if (!targets.length) { alert('Önce tarama yapın!'); return; }
+
+  const bb = document.getElementById('btBtn');
+  const sb = document.getElementById('scanBtn');
+  bb.disabled = true; bb.classList.add('spinning'); bb.textContent = '⏳ ANALİZ EDİLİYOR...';
+  sb.disabled = true;
+  startPollProgress();
+
+  try {
+    const resp = await fetch('/api/backtest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targets })
+    });
+    const data = await resp.json();
+    stopPollProgress(); showProg(false);
+    renderBacktest(data.results || [], data.summary || {});
+  } catch(e) {
+    stopPollProgress(); showProg(false);
+    alert('Analiz hatası: ' + e.message);
+  }
+
+  bb.disabled = false; bb.classList.remove('spinning'); bb.textContent = '↻ ANALİZİ GÜNCELLE';
+  sb.disabled = false;
+}
+
+// ── RENDER HELPERS ────────────────────────────────────────
+const ar = i => `style="animation-delay:${i*35}ms"`;
+
+function haCell(c) {
+  return `<span class="hac"><span class="ci ${c}"></span>${c === 'green' ? '🟢 YEŞİL' : '🔴 KIRMIZI'}</span>`;
+}
+
+function chgCell(v) {
+  const cls = v >= 0 ? 'up' : 'dn';
+  return `<span class="chg ${cls}">${v >= 0 ? '+' : ''}${v.toFixed(2)}%</span>`;
+}
+
+function trendBadge(t) {
+  if (t.includes('GÜÇLÜ YÜKSELİŞ')) return `<span class="badge g">↑↑ ${t}</span>`;
+  if (t.includes('GÜÇLÜ DÜŞÜŞ'))    return `<span class="badge r">↓↓ ${t}</span>`;
+  if (t.includes('ORTA YÜKSELİŞ')) return `<span class="badge b">↑ ${t}</span>`;
+  if (t.includes('ORTA DÜŞÜŞ'))    return `<span class="badge y">↓ ${t}</span>`;
+  return `<span class="badge gray">${t}</span>`;
+}
+
+function rateBar(pct) {
+  const cl = pct >= 60 ? 'hi' : pct >= 40 ? 'mi' : 'lo';
+  const n  = Math.round(pct / 20);
+  const pips = Array.from({length:5}, (_,i) =>
+    `<span class="pip ${i < n ? 'on ' + cl : 'off'}"></span>`).join('');
+  return `
+    <div class="rbar-w">
+      <div class="rbar"><div class="rfill ${cl}" style="width:${Math.min(pct,100)}%"></div></div>
+      <span class="rpct ${cl}">%${pct.toFixed(1)}</span>
+    </div>
+    <div class="pips">${pips}</div>`;
+}
+
+function gainCell(g) {
+  const cl = g >= 10 ? 'up' : g >= 5 ? 'mi' : 'dn';
+  return `<span class="ag ${cl}">%${g.toFixed(2)}</span>`;
+}
+
+function symCell(s) {
+  return `<span class="sym">${s}<span><br>/USDT</span></span>`;
+}
+
+function empty(cols, msg, ic) {
+  return `<tr><td colspan="${cols}"><div class="empty"><div class="ic">${ic}</div>${msg}</div></td></tr>`;
+}
+
+// ── RENDER STATS ──────────────────────────────────────────
+function renderStats(d) {
+  document.getElementById('sBuy').textContent   = (d.buy || []).length;
+  document.getElementById('sCD').textContent    = (d.cd  || []).length;
+  document.getElementById('sSell').textContent  = (d.sell|| []).length;
+  document.getElementById('sApp').textContent   = (d.approach || []).length;
+  document.getElementById('sTotal').textContent = d.total || 0;
+  document.getElementById('cBuy').textContent   = (d.buy || []).length;
+  document.getElementById('cCD').textContent    = (d.cd  || []).length;
+  document.getElementById('cSell').textContent  = (d.sell|| []).length;
+  document.getElementById('cApp').textContent   = (d.approach || []).length;
+}
+
+function renderBuy(list) {
+  const tb = document.getElementById('tBuy');
+  if (!list.length) { tb.innerHTML = empty(6,'Buy Setup 9 bulunamadı','🔍'); return; }
+  tb.innerHTML = list.map((r,i) => `<tr ${ar(i)}>
+    <td>${symCell(r.sym)}</td>
+    <td><span class="px">$${r.price}</span></td>
+    <td>${chgCell(r.chg)}</td>
+    <td>${haCell(r.ha_color)}</td>
+    <td>${trendBadge(r.trend)}</td>
+    <td class="vol">$${r.vol}</td>
+  </tr>`).join('');
+}
+
+function renderCD(list) {
+  const tb = document.getElementById('tCD');
+  if (!list.length) { tb.innerHTML = empty(6,'Buy Countdown bulunamadı','⏳'); return; }
+  tb.innerHTML = list.map((r,i) => `<tr ${ar(i)}>
+    <td>${symCell(r.sym)}</td>
+    <td><span class="px">$${r.price}</span></td>
+    <td>${chgCell(r.chg)}</td>
+    <td><span class="cdnum">${r.cd}</span><span style="font-size:9px;color:var(--muted);margin-left:4px">/ 13</span></td>
+    <td>${haCell(r.ha_color)}</td>
+    <td class="vol">$${r.vol}</td>
+  </tr>`).join('');
+}
+
+function renderSell(list) {
+  const tb = document.getElementById('tSell');
+  if (!list.length) { tb.innerHTML = empty(6,'Sell Setup 9 bulunamadı','🔍'); return; }
+  tb.innerHTML = list.map((r,i) => `<tr ${ar(i)}>
+    <td>${symCell(r.sym)}</td>
+    <td><span class="px">$${r.price}</span></td>
+    <td>${chgCell(r.chg)}</td>
+    <td>${haCell(r.ha_color)}</td>
+    <td>${trendBadge(r.trend)}</td>
+    <td class="vol">$${r.vol}</td>
+  </tr>`).join('');
+}
+
+function renderApp(list) {
+  const tb = document.getElementById('tApp');
+  if (!list.length) { tb.innerHTML = empty(6,'Yaklaşan sinyal yok','🔍'); return; }
+  tb.innerHTML = list.map((r,i) => {
+    const isB = r.bs >= 7 && r.bs > r.ss;
+    const num = isB ? r.bs : r.ss;
+    const cl  = isB ? 'g' : 'r';
+    return `<tr ${ar(i)}>
+      <td>${symCell(r.sym)}</td>
+      <td><span class="px">$${r.price}</span></td>
+      <td>${chgCell(r.chg)}</td>
+      <td><span class="snum ${cl}">${num}</span></td>
+      <td><span class="badge ${cl}">${isB ? 'BUY' : 'SELL'}</span></td>
+      <td>${haCell(r.ha_color)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderBacktest(list, summary) {
+  const tb = document.getElementById('tBT');
+  document.getElementById('cBT').textContent = list.length;
+
+  if (!list.length) { tb.innerHTML = empty(9,'Yeterli geçmiş sinyal bulunamadı','📉'); return; }
+
+  if (summary && summary.avg_rate !== undefined) {
+    document.getElementById('btAvg').textContent  = '%' + summary.avg_rate;
+    document.getElementById('btGain').textContent = '%' + summary.avg_gain;
+    document.getElementById('btSig').textContent  = summary.total_signals;
+    document.getElementById('btSum').style.display = 'grid';
+    document.getElementById('nb').style.display = 'block';
+  }
+
+  tb.innerHTML = list.map((r,i) => {
+    const cl    = r.rate >= 60 ? 'hi' : r.rate >= 40 ? 'mi' : 'lo';
+    const bcl   = cl === 'hi' ? 'g' : cl === 'mi' ? 'y' : 'r';
+    const medal = r.rate >= 70 ? '🥇' : r.rate >= 50 ? '🥈' : r.rate >= 30 ? '🥉' : '📉';
+    const verdict = r.rate >= 60
+      ? `<span class="badge g">✅ GÜÇLÜ</span>`
+      : r.rate >= 40
+        ? `<span class="badge y">⚠️ ORTA</span>`
+        : `<span class="badge r">❌ ZAYIF</span>`;
+    const typeBadge = r.type === 'BUY SETUP 9'
+      ? `<span class="badge g" style="font-size:8px">SETUP 9</span>`
+      : `<span class="badge y" style="font-size:8px">COUNTDOWN</span>`;
+    return `<tr ${ar(i)}>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:16px">${medal}</span>
+          <div>${symCell(r.sym)}<div style="margin-top:2px">${typeBadge}</div></div>
+        </div>
+      </td>
+      <td><span class="px">$${r.price}</span></td>
+      <td>${chgCell(r.chg)}</td>
+      <td>${haCell(r.ha_color)}</td>
+      <td>${rateBar(r.rate)}</td>
+      <td><span class="badge ${bcl}" style="font-size:11px;padding:3px 8px">${r.ok}/${r.total}</span></td>
+      <td>${gainCell(r.avg_gain)}</td>
+      <td><span style="font-size:10px;color:var(--muted);background:rgba(255,255,255,.04);border:1px solid var(--border);padding:2px 6px">${r.total} sinyal</span></td>
+      <td>${verdict}</td>
+    </tr>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
