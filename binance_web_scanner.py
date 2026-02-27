@@ -1,5 +1,5 @@
 """
-BINANCE TD9 SCANNER — Web Arayüzü (DÜZELTİLMİŞ)
+BINANCE TD9 SCANNER — Web Arayüzü (DüüÜZELTİLMİŞ)
 Çalıştır: python binance_web_scanner.py
 Tarayıcı: http://localhost:5050
 
